@@ -13,6 +13,7 @@ import 'package:dio/dio.dart'; /// For saving video
 import 'package:screen_recorder/screen_recorder.dart'; /// For saving video
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'blinkingTimer.dart'; /// For blinking timer
+import 'videoUtil.dart'; /// For video capture
 import 'package:flutter_ffmpeg/flutter_ffmpeg.dart';
 import 'package:gallery_saver/gallery_saver.dart'; /// For video saving to gallery
 
@@ -57,6 +58,8 @@ class _HomeState extends State<Home> {
 
   String _timeString = "TIME DATA EMPTY"; /// String for time display on stream
   bool? isLandscape; /// Boolean to track orientation of the app
+  bool? leftStimState; /// Boolean to track state of the left stimulus
+  bool? rightStimState; /// Boolean to track state of the right stimulus
 
   var _globalKey = new GlobalKey(); /// Initialize global key
 
@@ -65,16 +68,25 @@ class _HomeState extends State<Home> {
 
   Timer? _timer;
   bool? isRecording; /// Boolean variable for video recording
+  final FlutterFFmpeg _flutterFFmpeg = new FlutterFFmpeg();
+
+  int? frameNum;
 
 
   @override
   void initState() {
-    isLandscape = false;
+    isLandscape = false; /// Assume initially the app is in portrait mode
     isRecording = false;
+    leftStimState = false; /// Initially left stimulus is LOW so set boolean to FALSE
+    rightStimState = false; /// Initially right stimulus is LOW so set boolean to FALSE
     super.initState();
 
     _timeString = _formatDateTime(DateTime.now()); /// Set time stream value
     Timer.periodic(Duration(seconds:1), (Timer t) => _getTime());
+
+    frameNum = 0;
+    VideoUtil.workPath = 'images';
+    VideoUtil.getAppTempDirectory();
   }
 
   /// Dispose method called when the object is removed from the tree permanently
@@ -114,6 +126,11 @@ class _HomeState extends State<Home> {
                     valueColor: AlwaysStoppedAnimation<Color>(Colors.white),),
                 );
               } else { // If the snapshot does have data
+
+                if(isRecording!){
+                  VideoUtil.saveImageFileToDirectory(snapshot.data as Uint8List, 'image_$frameNum.jpg');
+                  frameNum = frameNum! + 1;
+                }
                 return Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -260,6 +277,7 @@ class _HomeState extends State<Home> {
   }
 
   /// Method as seen in https://pub.dev/packages/image_gallery_saver/example
+  /// Captures and saves screenshot to gallery
   _saveScreen() async {
     RenderRepaintBoundary boundary =
     _globalKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
@@ -290,6 +308,7 @@ class _HomeState extends State<Home> {
     });
   }
 
+  /// Speed dial widget for landscape orientation
   Widget _getFab(){
     return SpeedDial(
       overlayOpacity: 0.1,
@@ -316,8 +335,42 @@ class _HomeState extends State<Home> {
     );
   }
 
-  /// Toggles the state of video recording boolean
+  /**
+   * Video capture functions
+   * */
+
+  /// Toggles the state of video recording boolean and initiates video creation
   videoRecording(){
     isRecording = !isRecording!;
+
+    if(!isRecording! && frameNum! > 0){
+      frameNum = 0;
+      makeVideoWithFFMpeg();
+    }
+  }
+
+  Future<int> execute(String command) async {
+    return await _flutterFFmpeg.execute(command);
+  }
+
+  /// Creates video
+  makeVideoWithFFMpeg(){
+    String tempVideofileName = "${DateTime.now().millisecondsSinceEpoch}.mp4";
+    execute(VideoUtil.generateEncodeVideoScript("mpeg4", tempVideofileName)).then((rc){
+      if(rc == 0){ /// No issue making video
+        print("Video complete");
+        String outputPath = VideoUtil.appTempDir! + "/$tempVideofileName";
+        _saveVideo(outputPath);
+      }
+    });
+  }
+
+  /// Saves video to gallery
+  _saveVideo(String path) async {
+    GallerySaver.saveVideo(path).then((result){
+      print("Video Save result : $result");
+      _toastInfo("Video saved in Gallery: $result"); /// Display debug message to app
+      VideoUtil.deleteTempDirectory();
+    });
   }
 }

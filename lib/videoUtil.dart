@@ -16,8 +16,17 @@ class VideoUtil {
     Directory(appTempDir!).create().then((Directory directory) async {
       final file = File('${directory.path}/$localName');
 
-      await file.writeAsBytesSync(byteData.buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
+      await file.writeAsBytes(byteData.buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
       print("filePath: ${file.path}");
     });
+  }
+
+  static Future<void> deleteTempDirectory() async {
+    Directory(appTempDir!).deleteSync(recursive: true);
+  }
+
+  static String generateEncodeVideoScript(String videoCodec, String fileName){
+    String outputPath = appTempDir! + "/" + fileName;
+    return "-hide_banner -y -i '" + appTempDir! + "/" + "image_%d.jpg" + "' " + "-c:v " + videoCodec + " -r 5 " + outputPath;
   }
 }
