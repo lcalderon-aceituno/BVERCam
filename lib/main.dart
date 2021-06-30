@@ -10,10 +10,11 @@ import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:path_provider/path_provider.dart'; /// For saving video
 import 'package:dio/dio.dart'; /// For saving video
+import 'package:screen_recorder/screen_recorder.dart'; /// For saving video
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 
 import 'package:intl/intl.dart';
 
-// import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 // import 'package:fluttertoast/fluttertoast.dart';
 // import 'package:save_in_gallery/save_in_gallery.dart';
 // import 'package:web_socket_channel/io.dart';
@@ -56,10 +57,16 @@ class _HomeState extends State<Home> {
 
   var _globalKey = new GlobalKey(); /// Initialize global key
 
+  List<bool> isSelected = [false, false]; /// For toggle buttons
+  ScreenRecorderController controller = ScreenRecorderController();
+
   @override
   void initState() {
     isLandscape = false;
     super.initState();
+
+    _timeString = _formatDateTime(DateTime.now()); /// Set time stream value
+    Timer.periodic(Duration(seconds:1), (Timer t) => _getTime());
   }
 
   @override
@@ -104,6 +111,22 @@ class _HomeState extends State<Home> {
                         ),
                         Stack(
                           children: [
+                            /// Recording option
+                            // ScreenRecorder(
+                            //   height: newVideoSizeHeight,
+                            //       width: newVideoSizeWidth,
+                            //       controller: controller,
+                            //   child: RepaintBoundary(
+                            //     key: _globalKey,
+                            //     child: Image.memory(
+                            //       snapshot.data as Uint8List,
+                            //       gaplessPlayback: true,
+                            //       width: newVideoSizeWidth,
+                            //       height: newVideoSizeHeight,
+                            //     ),
+                            //   ),
+                            // ),
+                            
                             RepaintBoundary(
                               key: _globalKey,
                               child: Image.memory(
@@ -131,7 +154,9 @@ class _HomeState extends State<Home> {
                           ],
                         ),
 
-                        /** Create menu bar below image widget */
+                        /**
+                         * Create menu bar below image widget
+                         * */
                         Expanded(flex: 1,
                         child: Container(color: Colors.black,
                         width: MediaQuery.of(context).size.width,
@@ -144,18 +169,6 @@ class _HomeState extends State<Home> {
                                 Material( /** wrap Icon button in Material to make splash color visible front of container */
                                   color: Colors.black,
                                   child: IconButton(
-                                      icon: Icon(
-                                        Icons.videocam,
-                                      ),
-                                    iconSize: 24,
-                                    color: Colors.orange,
-                                    splashColor: Colors.orange,
-                                    onPressed: () {},
-                                  ),
-                                ),
-                                Material( /** wrap Icon button in Material to make splash color visible front of container */
-                                  color: Colors.black,
-                                  child: IconButton(
                                     icon: Icon(
                                       Icons.photo_camera,
                                     ),
@@ -165,6 +178,65 @@ class _HomeState extends State<Home> {
                                     onPressed: () { _saveScreen();},
                                   ),
                                 ),
+                                Material( /** wrap Icon button in Material to make splash color visible front of container */
+                                  color: Colors.black,
+                                  child: OutlinedButton(
+                                    child: Text("Left stimulus", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w300),),
+                                    style: OutlinedButton.styleFrom(
+                                      primary: Colors.orange,
+                                      backgroundColor: Colors.black,
+                                      side: BorderSide(color: Colors.orange, width: 1),
+                                    ),
+                                    onPressed: () {},
+                                  ),
+                                ),
+                                Material( /** wrap Icon button in Material to make splash color visible front of container */
+                                  color: Colors.black,
+                                  child: OutlinedButton(
+                                    child: Text("Right stimulus", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w300),),
+                                    style: OutlinedButton.styleFrom(
+                                      primary: Colors.orange,
+                                      backgroundColor: Colors.black,
+                                      side: BorderSide(color: Colors.orange, width: 1),
+                                    ),
+                                    onPressed: () {},
+                                  ),
+                                ),
+
+                                /** Toggle buttons for recording option */
+                                // ToggleButtons(
+                                //   borderColor: Colors.black, /// Color of Border when button is not selected
+                                //   color: Colors.orange,  /// Color of Text and Icon when button is not selected
+                                //   fillColor: Colors.black, /// Color of button when selected
+                                //   selectedColor: Colors.orange, /// Color of Text and Icon when button is selected
+                                //   selectedBorderColor: Colors.orange, /// Color of Border when button is selected
+                                //   borderRadius: BorderRadius.all(Radius.circular(10)), /// Round border of toggle buttons
+                                //   children: [
+                                //     Icon(Icons.videocam),
+                                //     Icon(Icons.videocam_off),
+                                //   ],
+                                //   isSelected: isSelected,
+                                //   onPressed: (int index) {
+                                //     setState(() {
+                                //       for (int buttonIndex = 0; buttonIndex < isSelected.length; buttonIndex++) {
+                                //         if (buttonIndex == index) {
+                                //           isSelected[buttonIndex] = !isSelected[buttonIndex];
+                                //         } else {
+                                //           isSelected[buttonIndex] = false;
+                                //         }
+                                //       }
+                                //     });
+                                //     if(index == 0){
+                                //       _toastInfo("Begin recording");
+                                //       // controller.start();
+                                //     }
+                                //     if(index == 1){
+                                //       _toastInfo("End recording");
+                                //       // controller.stop();
+                                //       // var gif = controller.export();
+                                //     }
+                                //   },
+                                // )
                               ],
                             )
                         )))
@@ -177,6 +249,7 @@ class _HomeState extends State<Home> {
             },),
         );
       }),
+        floatingActionButton: _getFab(),
     );
   }
 
@@ -196,5 +269,43 @@ class _HomeState extends State<Home> {
 
   _toastInfo(String info) {
     Fluttertoast.showToast(msg: info, toastLength: Toast.LENGTH_LONG);
+  }
+
+  /// Formats date time string
+  String _formatDateTime(DateTime dateTime){
+    return DateFormat('MM/dd hh:mm:ss aaa').format(dateTime);
+  }
+
+  /// Updates the current time
+  void _getTime(){
+    final DateTime now = DateTime.now();
+    setState(() {
+      _timeString = _formatDateTime(now);
+    });
+  }
+
+  Widget _getFab(){
+    return SpeedDial(
+      animatedIcon: AnimatedIcons.menu_close,
+      animatedIconTheme: IconThemeData(size: 22),
+      visible: isLandscape!,
+      curve: Curves.bounceIn,
+      backgroundColor: Colors.orange,
+      foregroundColor: Colors.black,
+      children: [
+        SpeedDialChild(
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.orange,
+          child: Icon(Icons.photo_camera),
+          onTap: () => _saveScreen(),
+        ),
+        SpeedDialChild(
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.orange,
+          child: Icon(Icons.videocam),
+          onTap: (){}
+        )
+      ]
+    );
   }
 }

@@ -33,8 +33,9 @@ dependencies:
   fluttertoast: ^8.0.7 # Photo saving
   path_provider: ^2.0.2 # Video saving
   dio: ^4.0.0 # Video saving
+  screen_recorder: ^0.0.2 # Screen recording
+  flutter_speed_dial: ^3.0.5
 #  zoom_widget: ^0.2.1
-  flutter_speed_dial: ^1.2.4
   intl: ^0.17.0
 
 
