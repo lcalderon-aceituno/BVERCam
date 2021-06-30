@@ -32,9 +32,11 @@ dependencies:
   image_gallery_saver: ^1.6.9 # Screenshot capturing
   fluttertoast: ^8.0.7 # Photo saving
   path_provider: ^2.0.2 # Video saving
+  gallery_saver: ^2.1.2 # Video saving
   dio: ^4.0.0 # Video saving
   screen_recorder: ^0.0.2 # Screen recording
-  flutter_speed_dial: ^3.0.5
+  flutter_speed_dial: ^3.0.5 # For speed dial menu
+  flutter_ffmpeg: ^0.4.0 # For video recording
 #  zoom_widget: ^0.2.1
   intl: ^0.17.0
 

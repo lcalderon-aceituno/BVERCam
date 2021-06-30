@@ -12,6 +12,9 @@ import 'package:path_provider/path_provider.dart'; /// For saving video
 import 'package:dio/dio.dart'; /// For saving video
 import 'package:screen_recorder/screen_recorder.dart'; /// For saving video
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'blinkingTimer.dart'; /// For blinking timer
+import 'package:flutter_ffmpeg/flutter_ffmpeg.dart';
+import 'package:gallery_saver/gallery_saver.dart'; /// For video saving to gallery
 
 import 'package:intl/intl.dart';
 
@@ -60,13 +63,26 @@ class _HomeState extends State<Home> {
   List<bool> isSelected = [false, false]; /// For toggle buttons
   ScreenRecorderController controller = ScreenRecorderController();
 
+  Timer? _timer;
+  bool? isRecording; /// Boolean variable for video recording
+
+
   @override
   void initState() {
     isLandscape = false;
+    isRecording = false;
     super.initState();
 
     _timeString = _formatDateTime(DateTime.now()); /// Set time stream value
     Timer.periodic(Duration(seconds:1), (Timer t) => _getTime());
+  }
+
+  /// Dispose method called when the object is removed from the tree permanently
+  @override
+  void dispose() {
+    widget.channel.sink.close(); /// Close websocket
+    _timer!.cancel(); /// Cancel timer
+    super.dispose();
   }
 
   @override
@@ -79,13 +95,11 @@ class _HomeState extends State<Home> {
         if (orientation == Orientation.portrait) {
           // screen width < screen height
           isLandscape = false;
-          newVideoSizeWidth =
-          (screenWidth > videoWidth ? videoWidth : screenWidth) as double;
+          newVideoSizeWidth = screenWidth;
           newVideoSizeHeight = videoHeight * newVideoSizeWidth / videoWidth;
         } else {
           isLandscape = true;
-          newVideoSizeHeight =
-          (screenHeight > videoHeight ? videoHeight : screenHeight) as double;
+          newVideoSizeHeight = screenHeight;
           newVideoSizeWidth = videoWidth * newVideoSizeHeight / videoHeight;
         }
 
@@ -94,8 +108,7 @@ class _HomeState extends State<Home> {
           child: StreamBuilder(stream: widget.channel.stream,
             builder: (context, snapshot) {
               // Check if snapshot has data
-              if (!snapshot
-                  .hasData) { // If snapshot does not have data, display loading circle
+              if (!snapshot.hasData) { // If snapshot does not have data, display loading circle
                 return Center(
                   child: CircularProgressIndicator(
                     valueColor: AlwaysStoppedAnimation<Color>(Colors.white),),
@@ -143,11 +156,13 @@ class _HomeState extends State<Home> {
                                 SizedBox(
                                   height: 16,
                                 ),
-                                Text('BVER Cam', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w300),), // App title
+                                Text('BVER Cam', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w300, color: Colors.black),), /// App title
                                 SizedBox(
                                   height: 4,
                                 ),
-                                Text('Live | $_timeString', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w300),), // Live tag and time stamp display
+                                Text('Live | $_timeString', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w300, color: Colors.black),), /// Live tag and time stamp display
+                                SizedBox(height: 16,),
+                                isRecording!? BlinkingTimer() : Container(),
                               ],
                             ), alignment: Alignment.topCenter, /** Align text at top center */
                             ))
@@ -155,92 +170,83 @@ class _HomeState extends State<Home> {
                         ),
 
                         /**
-                         * Create menu bar below image widget
+                         * Stimulus menu bar
                          * */
                         Expanded(flex: 1,
-                        child: Container(color: Colors.black,
-                        width: MediaQuery.of(context).size.width,
-                        child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly, /** Align all buttons on menu bar evenly*/
-                              children: [
-                                Material( /** wrap Icon button in Material to make splash color visible front of container */
-                                  color: Colors.black,
-                                  child: IconButton(
-                                    icon: Icon(
-                                      Icons.photo_camera,
-                                    ),
-                                    iconSize: 24,
-                                    color: Colors.orange,
-                                    splashColor: Colors.orange,
-                                    onPressed: () { _saveScreen();},
-                                  ),
-                                ),
-                                Material( /** wrap Icon button in Material to make splash color visible front of container */
-                                  color: Colors.black,
-                                  child: OutlinedButton(
-                                    child: Text("Left stimulus", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w300),),
-                                    style: OutlinedButton.styleFrom(
-                                      primary: Colors.orange,
-                                      backgroundColor: Colors.black,
-                                      side: BorderSide(color: Colors.orange, width: 1),
-                                    ),
-                                    onPressed: () {},
-                                  ),
-                                ),
-                                Material( /** wrap Icon button in Material to make splash color visible front of container */
-                                  color: Colors.black,
-                                  child: OutlinedButton(
-                                    child: Text("Right stimulus", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w300),),
-                                    style: OutlinedButton.styleFrom(
-                                      primary: Colors.orange,
-                                      backgroundColor: Colors.black,
-                                      side: BorderSide(color: Colors.orange, width: 1),
-                                    ),
-                                    onPressed: () {},
-                                  ),
-                                ),
-
-                                /** Toggle buttons for recording option */
-                                // ToggleButtons(
-                                //   borderColor: Colors.black, /// Color of Border when button is not selected
-                                //   color: Colors.orange,  /// Color of Text and Icon when button is not selected
-                                //   fillColor: Colors.black, /// Color of button when selected
-                                //   selectedColor: Colors.orange, /// Color of Text and Icon when button is selected
-                                //   selectedBorderColor: Colors.orange, /// Color of Border when button is selected
-                                //   borderRadius: BorderRadius.all(Radius.circular(10)), /// Round border of toggle buttons
-                                //   children: [
-                                //     Icon(Icons.videocam),
-                                //     Icon(Icons.videocam_off),
-                                //   ],
-                                //   isSelected: isSelected,
-                                //   onPressed: (int index) {
-                                //     setState(() {
-                                //       for (int buttonIndex = 0; buttonIndex < isSelected.length; buttonIndex++) {
-                                //         if (buttonIndex == index) {
-                                //           isSelected[buttonIndex] = !isSelected[buttonIndex];
-                                //         } else {
-                                //           isSelected[buttonIndex] = false;
-                                //         }
-                                //       }
-                                //     });
-                                //     if(index == 0){
-                                //       _toastInfo("Begin recording");
-                                //       // controller.start();
-                                //     }
-                                //     if(index == 1){
-                                //       _toastInfo("End recording");
-                                //       // controller.stop();
-                                //       // var gif = controller.export();
-                                //     }
-                                //   },
-                                // )
-                              ],
-                            )
-                        )))
-                        /**End of menu bar*/
+                            child: Container(color: Colors.black,
+                                width: MediaQuery.of(context).size.width,
+                                child: Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 25),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly, /** Align all buttons on menu bar evenly*/
+                                      children: [
+                                        Material( /** wrap Icon button in Material to make splash color visible front of container */
+                                          color: Colors.black,
+                                          child: OutlinedButton(
+                                            child: Text("Left stimulus", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w300),),
+                                            style: OutlinedButton.styleFrom(
+                                              primary: Colors.orange,
+                                              backgroundColor: Colors.black,
+                                              side: BorderSide(color: Colors.orange, width: 1),
+                                            ),
+                                            onPressed: () {},
+                                          ),
+                                        ),
+                                        Material( /** wrap Icon button in Material to make splash color visible front of container */
+                                          color: Colors.black,
+                                          child: OutlinedButton(
+                                            child: Text("Right stimulus", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w300),),
+                                            style: OutlinedButton.styleFrom(
+                                              primary: Colors.orange,
+                                              backgroundColor: Colors.black,
+                                              side: BorderSide(color: Colors.orange, width: 1),
+                                            ),
+                                            onPressed: () {},
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                ))),
+                                /**
+                                 * Capture menu bar
+                                 * */
+                                Expanded(flex: 5,
+                                child: Container(color: Colors.black,
+                                width: MediaQuery.of(context).size.width,
+                                child: Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 25),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Material( /** wrap Icon button in Material to make splash color visible front of container */
+                                          color: Colors.black,
+                                          child: IconButton(
+                                            icon: Icon(
+                                              Icons.photo_camera,
+                                            ),
+                                            iconSize: 30,
+                                            color: Colors.orange,
+                                            splashColor: Colors.orange,
+                                            onPressed: () { _saveScreen();},
+                                          ),
+                                        ),
+                                        Material( /** wrap Icon button in Material to make splash color visible front of container */
+                                          color: Colors.black,
+                                          child: IconButton(
+                                            icon: Icon(
+                                              isRecording!? Icons.stop : Icons.videocam, /// Icon displayed is conditional on recording boolean
+                                            ),
+                                            iconSize: 30,
+                                            color: Colors.orange,
+                                            splashColor: Colors.orange,
+                                            onPressed: () {videoRecording();}, /// When pressed, toggle the state of video recording
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                ))),
+                                /**End of capture menu bar*/
                       ]
                     )
                   ]
@@ -286,6 +292,7 @@ class _HomeState extends State<Home> {
 
   Widget _getFab(){
     return SpeedDial(
+      overlayOpacity: 0.1,
       animatedIcon: AnimatedIcons.menu_close,
       animatedIconTheme: IconThemeData(size: 22),
       visible: isLandscape!,
@@ -302,10 +309,15 @@ class _HomeState extends State<Home> {
         SpeedDialChild(
           backgroundColor: Colors.black,
           foregroundColor: Colors.orange,
-          child: Icon(Icons.videocam),
-          onTap: (){}
+          child: Icon(isRecording!? Icons.stop : Icons.videocam), /// Icon displayed is conditional on recording boolean),
+          onTap: (){videoRecording();} /// When pressed, toggle the state of video recording
         )
       ]
     );
+  }
+
+  /// Toggles the state of video recording boolean
+  videoRecording(){
+    isRecording = !isRecording!;
   }
 }
