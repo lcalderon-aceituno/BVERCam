@@ -1,12 +1,16 @@
 import 'dart:async';
-import 'dart:ffi';
 import 'dart:typed_data';
-import 'dart:ui';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:path_provider/path_provider.dart'; /// For saving video
+import 'package:dio/dio.dart'; /// For saving video
+
 import 'package:intl/intl.dart';
 
 // import 'package:flutter_speed_dial/flutter_speed_dial.dart';
@@ -103,11 +107,11 @@ class _HomeState extends State<Home> {
                             RepaintBoundary(
                               key: _globalKey,
                               child: Image.memory(
-                                snapshot.data as Uint8List,
-                                gaplessPlayback: true,
-                                width: newVideoSizeWidth,
-                                height: newVideoSizeHeight,
-                              ),
+                                  snapshot.data as Uint8List,
+                                  gaplessPlayback: true,
+                                  width: newVideoSizeWidth,
+                                  height: newVideoSizeHeight,
+                                ),
                             ),
 
                             Positioned.fill(child: Align(child:
@@ -158,7 +162,7 @@ class _HomeState extends State<Home> {
                                     iconSize: 24,
                                     color: Colors.orange,
                                     splashColor: Colors.orange,
-                                    onPressed: () { takeScreenShot();},
+                                    onPressed: () { _saveScreen();},
                                   ),
                                 ),
                               ],
@@ -176,11 +180,21 @@ class _HomeState extends State<Home> {
     );
   }
 
-  takeScreenShot() async {
-    RenderRepaintBoundary boundary = _globalKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+  /// Method as seen in https://pub.dev/packages/image_gallery_saver/example
+  _saveScreen() async {
+    RenderRepaintBoundary boundary =
+    _globalKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+    ui.Image image = await boundary.toImage();
+    ByteData? byteData = await (image.toByteData(format: ui.ImageByteFormat.png));
+    if (byteData != null) {
+      final result =
+      await ImageGallerySaver.saveImage(byteData.buffer.asUint8List());
+      print(result);
+      _toastInfo(result.toString());
+    }
+  }
 
-
-
-
+  _toastInfo(String info) {
+    Fluttertoast.showToast(msg: info, toastLength: Toast.LENGTH_LONG);
   }
 }
