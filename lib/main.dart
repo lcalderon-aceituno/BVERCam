@@ -33,16 +33,17 @@ class MyApp extends StatelessWidget {
       theme: ThemeData.dark(),
       title: "ESP32-CAM Surveillance Camera",
       home: Home(
-        channel: IOWebSocketChannel.connect('ws://34.94.141.140:65080')
+        channel: IOWebSocketChannel.connect('ws://34.94.141.140:65080'),
+        commChannel: IOWebSocketChannel.connect('ws://34.94.141.140:65080') /// Testing maybe delete?
       ),
     );
   }
 }
 
 class Home extends StatefulWidget {
-
   final WebSocketChannel channel;
-  Home({Key? key, required this.channel}) : super(key: key);
+  final WebSocketChannel commChannel; /// Testing, delete?
+  Home({Key? key, required this.channel, required this.commChannel}) : super(key: key);
 
   @override
   _HomeState createState() => _HomeState();
@@ -93,6 +94,7 @@ class _HomeState extends State<Home> {
   @override
   void dispose() {
     widget.channel.sink.close(); /// Close websocket
+    widget.commChannel.sink.close(); /// Testing
     _timer!.cancel(); /// Cancel timer
     super.dispose();
   }
@@ -126,7 +128,6 @@ class _HomeState extends State<Home> {
                     valueColor: AlwaysStoppedAnimation<Color>(Colors.white),),
                 );
               } else { // If the snapshot does have data
-
                 if(isRecording!){
                   VideoUtil.saveImageFileToDirectory(snapshot.data as Uint8List, 'image_$frameNum.jpg');
                   frameNum = frameNum! + 1;
@@ -141,22 +142,6 @@ class _HomeState extends State<Home> {
                         ),
                         Stack(
                           children: [
-                            /// Recording option
-                            // ScreenRecorder(
-                            //   height: newVideoSizeHeight,
-                            //       width: newVideoSizeWidth,
-                            //       controller: controller,
-                            //   child: RepaintBoundary(
-                            //     key: _globalKey,
-                            //     child: Image.memory(
-                            //       snapshot.data as Uint8List,
-                            //       gaplessPlayback: true,
-                            //       width: newVideoSizeWidth,
-                            //       height: newVideoSizeHeight,
-                            //     ),
-                            //   ),
-                            // ),
-                            
                             RepaintBoundary(
                               key: _globalKey,
                               child: Image.memory(
@@ -219,7 +204,7 @@ class _HomeState extends State<Home> {
                                               backgroundColor: Colors.black,
                                               side: BorderSide(color: Colors.orange, width: 1),
                                             ),
-                                            onPressed: () {},
+                                            onPressed: () { widget.commChannel.sink.add('right button pressed'); },
                                           ),
                                         ),
                                       ],
@@ -372,5 +357,12 @@ class _HomeState extends State<Home> {
       _toastInfo("Video saved in Gallery: $result"); /// Display debug message to app
       VideoUtil.deleteTempDirectory();
     });
+  }
+
+  /**
+   * Right stimulus function
+   * */
+  initRightStim() async {
+    widget.commChannel.sink.add('right button pressed');
   }
 }
