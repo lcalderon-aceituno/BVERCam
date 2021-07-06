@@ -34,22 +34,21 @@ class MyApp extends StatelessWidget {
       title: "ESP32-CAM Surveillance Camera",
       home: Home(
         channel: IOWebSocketChannel.connect('ws://34.94.141.140:65080'),
-        commChannel: IOWebSocketChannel.connect('ws://34.94.141.140:65080') /// Testing maybe delete?
       ),
     );
   }
 }
 
 class Home extends StatefulWidget {
-  final WebSocketChannel channel;
-  final WebSocketChannel commChannel; /// Testing, delete?
-  Home({Key? key, required this.channel, required this.commChannel}) : super(key: key);
+  WebSocketChannel channel; /// Removed final
+  Home({Key? key, required this.channel,}) : super(key: key);
 
   @override
   _HomeState createState() => _HomeState();
 }
 
 class _HomeState extends State<Home> {
+  WebSocketChannel? commChannel; /// Testing
 
   final videoWidth = 640;
   final videoHeight = 480;
@@ -73,28 +72,33 @@ class _HomeState extends State<Home> {
 
   int? frameNum;
 
+  String? msg; /// Testing
 
   @override
   void initState() {
+    commChannel = IOWebSocketChannel.connect('ws://34.94.141.140:65080'); /// Testing
+
     isLandscape = false; /// Assume initially the app is in portrait mode
     isRecording = false;
     leftStimState = false; /// Initially left stimulus is LOW so set boolean to FALSE
     rightStimState = false; /// Initially right stimulus is LOW so set boolean to FALSE
     super.initState();
 
-    _timeString = _formatDateTime(DateTime.now()); /// Set time stream value
+    _timeString = _formatDateTime(DateTime.now()); /// Set time string value
     Timer.periodic(Duration(seconds:1), (Timer t) => _getTime());
 
     frameNum = 0;
     VideoUtil.workPath = 'images';
     VideoUtil.getAppTempDirectory();
+
+    msg = "";
   }
 
   /// Dispose method called when the object is removed from the tree permanently
   @override
   void dispose() {
     widget.channel.sink.close(); /// Close websocket
-    widget.commChannel.sink.close(); /// Testing
+    commChannel!.sink.close(); /// Testing
     _timer!.cancel(); /// Cancel timer
     super.dispose();
   }
@@ -192,7 +196,9 @@ class _HomeState extends State<Home> {
                                               backgroundColor: Colors.black,
                                               side: BorderSide(color: Colors.orange, width: 1),
                                             ),
-                                            onPressed: () {},
+                                            onPressed: () {
+                                              sendMsg("Left stimulus button activated"); /// Send string message
+                                            },
                                           ),
                                         ),
                                         Material( /** wrap Icon button in Material to make splash color visible front of container */
@@ -204,7 +210,10 @@ class _HomeState extends State<Home> {
                                               backgroundColor: Colors.black,
                                               side: BorderSide(color: Colors.orange, width: 1),
                                             ),
-                                            onPressed: () { widget.commChannel.sink.add('right button pressed'); },
+                                            onPressed: () {
+                                              print("Right button pushed");
+                                              sendMsg("Right stimulus button activated"); /// Send string message
+                                              },
                                           ),
                                         ),
                                       ],
@@ -359,10 +368,12 @@ class _HomeState extends State<Home> {
     });
   }
 
-  /**
-   * Right stimulus function
-   * */
-  initRightStim() async {
-    widget.commChannel.sink.add('right button pressed');
+  /// Stimulus function
+  /// Sends a message via communication channel to the camera module
+  sendMsg(String msg) {
+    print("sending msg");
+    widget.channel.sink.close(); /// Disconnect video streaming channel
+    commChannel!.sink.add(msg); /// Send message in communication channel
+    widget.channel = IOWebSocketChannel.connect('ws://34.94.141.140:65080'); /// Reconnect the video streaming channel
   }
 }
