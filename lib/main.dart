@@ -63,16 +63,15 @@ class _HomeState extends State<Home> {
 
   var _globalKey = new GlobalKey(); /// Initialize global key
 
-  List<bool> isSelected = [false, false]; /// For toggle buttons
   ScreenRecorderController controller = ScreenRecorderController();
 
+  int? frameNum; /// Counting variable
   Timer? _timer;
   bool? isRecording; /// Boolean variable for video recording
   final FlutterFFmpeg _flutterFFmpeg = new FlutterFFmpeg();
-
-  int? frameNum;
-
-  String? msg; /// Testing
+  String? msg; /// Variable for loading message to be sent to the board
+  String? dropdownValue; /// Initial frequency option
+  List<String> freqOptions = []; /// Frequency options to be chosen from by user (1-25Hz)
 
   @override
   void initState() {
@@ -91,7 +90,11 @@ class _HomeState extends State<Home> {
     VideoUtil.workPath = 'images';
     VideoUtil.getAppTempDirectory();
 
-    msg = "";
+    msg = ""; /// Initialize message as empty string
+    for(int i = 1; i <= 25; i++) {
+      freqOptions.add("$i Hz"); /// Add all frequency options to the list of spinner options
+    }
+    dropdownValue = '1 Hz'; /// Initial frequency option
   }
 
   /// Dispose method called when the object is removed from the tree permanently
@@ -220,7 +223,7 @@ class _HomeState extends State<Home> {
                                     )
                                 ))),
                                 /**
-                                 * Capture menu bar
+                                 * Capture & frequency menu bar
                                  * */
                                 Expanded(flex: 5,
                                 child: Container(color: Colors.black,
@@ -229,6 +232,7 @@ class _HomeState extends State<Home> {
                                     padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 25),
                                     child: Row(
                                       crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                       children: [
                                         Material( /** wrap Icon button in Material to make splash color visible front of container */
                                           color: Colors.black,
@@ -253,6 +257,53 @@ class _HomeState extends State<Home> {
                                             splashColor: Colors.orange,
                                             onPressed: () {videoRecording();}, /// When pressed, toggle the state of video recording
                                           ),
+                                        ),
+                                        Material( /** wrap Icon button in Material to make splash color visible front of container */
+                                          color: Colors.black,
+                                          child: Padding(
+                                            padding: const EdgeInsets.only(top: 11),
+                                            child: Text(
+                                                "Frequency: ",
+                                                style: TextStyle(color: Colors.orange, fontSize: 18, fontWeight: FontWeight.w300),
+                                            ),
+                                          )
+                                        ),
+                                        /// Spinner/drop down menu for choosing the frequency of the stimulus (1-25 Hz)
+                                        Material( /** wrap Icon button in Material to make splash color visible front of container */
+                                          color: Colors.black,
+                                          /// Add some padding around the frequency menu
+                                          child: Padding(
+                                            padding: const EdgeInsets.only(right: 20),
+                                            child: DropdownButton<String>(
+                                              value: dropdownValue,
+                                              icon: const Icon(Icons.arrow_drop_down),
+                                              iconSize: 15,
+                                              iconDisabledColor: Colors.orange,
+                                              iconEnabledColor: Colors.orange,
+                                              elevation: 16,
+                                              style: const TextStyle(color: Colors.orange, fontSize: 18,fontWeight: FontWeight.w300),
+                                              underline: Container(
+                                                height: 2,
+                                                color: Colors.orange,
+                                              ),
+                                              /// Setting new value once changed
+                                              onChanged: (String? newValue) {
+                                                setState(() {
+                                                  dropdownValue = newValue!;
+                                                  sendMsg(dropdownValue!); /// Send the dropdown value selected to the board
+                                                });
+                                              },
+                                              /// Item list
+                                              items: freqOptions
+                                                  .map<DropdownMenuItem<String>>((String value) {
+                                                return DropdownMenuItem<String>(
+                                                  value: value,
+                                                  child: Text(value),
+                                                  // if(value == "")
+                                                );
+                                              }).toList(),
+                                            ),
+                                          )
                                         ),
                                       ],
                                     )
