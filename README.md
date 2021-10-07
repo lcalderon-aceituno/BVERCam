@@ -1,16 +1,7 @@
-# flutter_surveillance
+# BVERCam: a software solution to biological visually equiped robots 
 
-A new Flutter project.
+This project consists of two parts: 
+* A Flutter application 
+* Arduino code 
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
-
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+The Flutter application is based on a project available [here](https://youtu.be/9GyOTlOGjSA), and the Arduino code is a variation of example code for the generic ESP32 camera module.
