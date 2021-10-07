@@ -1,4 +1,4 @@
-# BVERCam: a software solution to biological visually equiped robots 
+# BVERCam: a software solution for biological visually equiped robots
 
 This project consists of two parts: 
 * A Flutter application 
